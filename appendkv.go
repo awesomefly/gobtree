@@ -41,6 +41,7 @@ func (store *Store) appendValueS(val string) int64 {
 }
 
 // Append/Fetch key as either byte-slice or string
+// todo: support fetch from cached keys
 func (store *Store) fetchKey(fpos int64) []byte {
 	x := store.wstore.readKV(store.kvRfd, fpos)
 	return x

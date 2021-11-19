@@ -12,7 +12,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/prataprc/gobtree"
+	"github.com/awesomefly/gobtree"
 	"os"
 	"time"
 )
@@ -21,8 +21,8 @@ var _ = fmt.Sprintln("keep 'fmt' import during debugging", time.Now(), os.O_WRON
 
 func main() {
 	flag.Parse()
-	args := flag.Args()
-	idxfile, kvfile := args[0], args[1]
+	// args := flag.Args()
+	idxfile, kvfile := "./data/test_insert_index.dat", "./data/test_insert_kv.dat"
 	os.Remove(idxfile)
 	os.Remove(kvfile)
 

@@ -175,7 +175,7 @@ func getWStore(conf Config) *WStore {
 
 // New instance of wstore.
 func newWStore(conf Config) *WStore {
-	idxmode, kvmode := os.O_WRONLY, os.O_APPEND|os.O_WRONLY
+	idxmode, kvmode := os.O_WRONLY, os.O_WRONLY
 	// open in durability mode.
 	if conf.Sync {
 		idxmode |= os.O_SYNC

@@ -10,7 +10,7 @@
 package main
 
 import (
-	"github.com/prataprc/gobtree"
+	"github.com/awesomefly/gobtree"
 	"log"
 	"os"
 	"time"

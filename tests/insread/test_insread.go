@@ -11,7 +11,7 @@ package main
 
 import (
 	"bytes"
-	"github.com/prataprc/gobtree"
+	"github.com/awesomefly/gobtree"
 	"log"
 	"os"
 	"sort"
