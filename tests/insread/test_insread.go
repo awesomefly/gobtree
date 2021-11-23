@@ -14,7 +14,6 @@ import (
 	"github.com/awesomefly/gobtree"
 	"log"
 	"os"
-	"sort"
 	"time"
 )
 
@@ -44,8 +43,8 @@ func main() {
 	}
 
 	bt := btree.NewBTree(btree.NewStore(conf))
-	factor := 10
-	count := 10000
+	factor := 1
+	count := 20
 	seed := time.Now().UnixNano()
 
 	log.Println("Seed:", seed)
@@ -55,16 +54,18 @@ func main() {
 		for j := 0; j < count; j++ {
 			k, v := keys[j], values[j]
 			k.Id = int64((i * count) + j)
+			log.Printf("insert key:%s, val:%s\n", k.K, v.V)
 			bt.Insert(k, v)
 		}
 		log.Println("Done ", time.Now().UnixNano()/1000000, (i+1)*count)
 	}
 	bt.Drain()
-	countIn(bt, count, factor)
-	front(bt)
-	keyset(bt, count, factor)
-	fullset(bt, count, factor)
-	containsEquals(bt, count, factor, keys)
+
+	//countIn(bt, count, factor)
+	//front(bt)
+	//keyset(bt, count, factor)
+	//fullset(bt, count, factor)
+	//containsEquals(bt, count, factor, keys)
 	lookup(bt, count, factor, keys, values)
 }
 
@@ -159,35 +160,24 @@ func lookup(bt *btree.BTree, count, factor int, keys []*btree.TestKey,
 	values []*btree.TestValue) {
 
 	log.Println("Lookup")
+	vals := make([]string, 0)
 	for i := 0; i < count; i++ {
-		refvals := make([]string, 0)
-		for j := 0; j < count; j++ {
-			if keys[i].K == keys[j].K {
-				for k := 0; k < factor; k++ {
-					refvals = append(refvals, values[j].V)
-				}
-			}
-		}
+		log.Printf("key:%s\n", keys[i].K)
 		keys[i].Id = 0
 		ch := bt.Lookup(keys[i])
-		vals := make([]string, 0)
-		for {
+		//for {
 			x := <-ch
+			log.Printf("key:%s, val:%s\n", keys[i].K, string(x))
 			if x == nil {
-				break
+				//break
 			}
 			vals = append(vals, string(x))
+		//}
+		//sort.Strings(vals)
+		if vals[i] != values[i].V {
+			panic("Lookup value mismatch")
 		}
-		sort.Strings(refvals)
-		sort.Strings(vals)
-		if len(refvals) != len(vals) {
-			panic("Lookup length mismatch")
-		}
-		for i := range vals {
-			if vals[i] != refvals[i] {
-				panic("Lookup value mismatch")
-			}
-		}
+
 	}
 	bt.Close()
 }
