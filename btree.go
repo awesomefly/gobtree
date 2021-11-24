@@ -306,14 +306,14 @@ func (bt *BTree) ValueSet() <-chan []byte {
 	return c
 }
 
-func (bt *BTree) LookupMV(key Key) chan []byte {
+func (bt *BTree) LookupDirty(key Key) chan []byte {
 	c := make(chan []byte)
 	go func() {
 		root, _, timestamp := bt.store.OpStart(true) // read from mv root node
-		root.lookup(bt.store, key, func(val []byte) {
+		root.lookupDirty(bt.store, key, func(val []byte) {
 			c <- val
 		})
-		bt.store.OpEnd(false, nil, timestamp) //do not commit mv
+		bt.store.OpEnd(true, nil, timestamp) //do not commit mv
 		close(c)
 	}()
 	return c

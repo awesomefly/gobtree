@@ -60,6 +60,9 @@ type Node interface {
 	// lookup index for key
 	lookup(*Store, Key, Emitter) bool
 
+	// lookup index for key that contain uncommited
+	lookupDirty(*Store, Key, Emitter) bool
+
 	// removes the value from the tree, rebalancing as necessary. Returns true
 	// iff an element was actually deleted. Return,
 	//  - Node
@@ -315,6 +318,30 @@ func (in *inode) lookup(store *Store, key Key, emit Emitter) bool {
 	}
 	for i := index; i < in.size+1; i++ {
 		if store.FetchNCache(in.vs[i]).lookup(store, key, emit) {
+			if i < in.size {
+				keyb := store.fetchKey(in.ks[i])
+				if keyeq, _ := key.Equal(keyb, nil); keyeq == false {
+					return false
+				}
+			}
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func (kn *knode) lookupDirty(store *Store, key Key, emit Emitter) bool {
+	return kn.lookup(store, key, emit)
+}
+
+func (in *inode) lookupDirty(store *Store, key Key, emit Emitter) bool {
+	index, kpos, dpos := in.searchGE(store, key, true)
+	if kpos >= 0 && dpos >= 0 {
+		index += 1
+	}
+	for i := index; i < in.size+1; i++ {
+		if store.FetchMVCache(in.vs[i]).lookupDirty(store, key, emit) {
 			if i < in.size {
 				keyb := store.fetchKey(in.ks[i])
 				if keyeq, _ := key.Equal(keyb, nil); keyeq == false {

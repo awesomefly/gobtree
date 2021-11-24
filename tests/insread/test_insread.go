@@ -18,8 +18,8 @@ import (
 )
 
 var conf = btree.Config{
-	Idxfile: "./data/test_insread_index.dat",
-	Kvfile:  "./data/test_insread_kv.dat",
+	Idxfile: "./data/test_insread_index1.dat",
+	Kvfile:  "./data/test_insread_kv1.dat",
 	IndexConfig: btree.IndexConfig{
 		Sectorsize: 512,
 		Flistsize:  1000 * btree.OFFSET_SIZE,
@@ -32,6 +32,7 @@ var conf = btree.Config{
 	MaxLeafCache:  1000,
 	Sync:          false,
 	Nocache:       false,
+	//Debug: true,
 }
 
 func main() {
@@ -162,22 +163,26 @@ func lookup(bt *btree.BTree, count, factor int, keys []*btree.TestKey,
 	log.Println("Lookup")
 	vals := make([]string, 0)
 	for i := 0; i < count; i++ {
-		log.Printf("key:%s\n", keys[i].K)
+		//log.Printf("key:%s\n", keys[i].K)
 		keys[i].Id = 0
-		ch := bt.Lookup(keys[i])
-		//for {
+		ch := bt.LookupDirty(keys[i])
+		for {
 			x := <-ch
 			log.Printf("key:%s, val:%s\n", keys[i].K, string(x))
 			if x == nil {
-				//break
+				log.Println("read nil")
+				break
 			}
 			vals = append(vals, string(x))
-		//}
+		}
 		//sort.Strings(vals)
 		if vals[i] != values[i].V {
 			panic("Lookup value mismatch")
 		}
 
 	}
-	bt.Close()
+	log.Println("End Lookup")
+
+	//bt.Drain()
+	//time.Sleep(1*time.Second)
 }
