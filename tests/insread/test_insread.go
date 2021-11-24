@@ -18,8 +18,8 @@ import (
 )
 
 var conf = btree.Config{
-	Idxfile: "./data/test_insread_index1.dat",
-	Kvfile:  "./data/test_insread_kv1.dat",
+	Idxfile: "./data/test_insread_index2.dat",
+	Kvfile:  "./data/test_insread_kv2.dat",
 	IndexConfig: btree.IndexConfig{
 		Sectorsize: 512,
 		Flistsize:  1000 * btree.OFFSET_SIZE,
@@ -60,7 +60,7 @@ func main() {
 		}
 		log.Println("Done ", time.Now().UnixNano()/1000000, (i+1)*count)
 	}
-	bt.Drain()
+	//bt.Drain()
 
 	//countIn(bt, count, factor)
 	//front(bt)

@@ -309,11 +309,11 @@ func (bt *BTree) ValueSet() <-chan []byte {
 func (bt *BTree) LookupDirty(key Key) chan []byte {
 	c := make(chan []byte)
 	go func() {
-		root, _, timestamp := bt.store.OpStart(true) // read from mv root node
+		root, _, timestamp := bt.store.OpStartDirty(false) // read from mv root node
 		root.lookupDirty(bt.store, key, func(val []byte) {
 			c <- val
 		})
-		bt.store.OpEnd(true, nil, timestamp) //do not commit mv
+		bt.store.OpEnd(false, nil, timestamp) //do not commit mv
 		close(c)
 	}()
 	return c

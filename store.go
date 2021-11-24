@@ -122,6 +122,30 @@ func (store *Store) OpStart(transaction bool) (Node, *MV, int64) {
 	return root, mv, ts
 }
 
+func (store *Store) OpStartDirty(transaction bool) (Node, *MV, int64) {
+	var mv *MV
+	var root Node
+	var ts, rootfpos int64
+	if transaction {
+	} else {
+		ts, rootfpos = store.wstore.access(transaction)
+		mvroot := mvRoot(store)
+		if mvroot == 0 {
+			mvroot = rootfpos
+		}
+		if store.Debug {
+			log.Println("MV Root: ", mvroot)
+		}
+		staleroot := store.FetchMVCache(mvroot)
+		root = staleroot.copyOnWrite(store)
+		mv = &MV{stales: []int64{}, commits: make(map[int64]Node)}
+		mv.commits[root.getKnode().fpos] = root
+	}
+	mv.timestamp = ts
+	store.wstore.opCounts += 1
+	return root, mv, ts
+}
+
 // Opposite of OpStart() API.
 func (store *Store) OpEnd(transaction bool, mv *MV, ts int64) {
 	minAccess := store.wstore.release(ts)
