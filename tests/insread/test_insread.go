@@ -36,8 +36,8 @@ var conf = btree.Config{
 }
 
 func main() {
-	//os.Remove(conf.idxfile)
-	//os.Remove(conf.kvfile)
+	//os.Remove(conf.Idxfile)
+	//os.Remove(conf.Kvfile)
 	if conf.Debug {
 		fd, _ := os.Create("debug")
 		log.SetOutput(fd)
@@ -46,20 +46,23 @@ func main() {
 	bt := btree.NewBTree(btree.NewStore(conf))
 	factor := 1
 	count := 20
-	seed := time.Now().UnixNano()
+	//seed := time.Now().UnixNano()
+	seed := 1637823047798425000
 
 	log.Println("Seed:", seed)
-	keys, values := btree.TestData(10000, seed)
+	keys, values := btree.TestData(10000, int64(seed))
 	log.Println(time.Now())
 	for i := 0; i < factor; i++ {
 		for j := 0; j < count; j++ {
 			k, v := keys[j], values[j]
 			k.Id = int64((i * count) + j)
 			log.Printf("insert key:%s, val:%s\n", k.K, v.V)
-			bt.Insert(k, v)
+			//bt.Insert(k, v)
 		}
 		log.Println("Done ", time.Now().UnixNano()/1000000, (i+1)*count)
 	}
+
+	dirty := true // if drain then dirty false
 	//bt.Drain()
 
 	//countIn(bt, count, factor)
@@ -67,7 +70,7 @@ func main() {
 	//keyset(bt, count, factor)
 	//fullset(bt, count, factor)
 	//containsEquals(bt, count, factor, keys)
-	lookup(bt, count, factor, keys, values)
+	lookup(bt, count, factor, keys, values, dirty)
 }
 
 func countIn(bt *btree.BTree, count int, factor int) {
@@ -158,14 +161,19 @@ func containsEquals(bt *btree.BTree, count, factor int, keys []*btree.TestKey) {
 }
 
 func lookup(bt *btree.BTree, count, factor int, keys []*btree.TestKey,
-	values []*btree.TestValue) {
+	values []*btree.TestValue, dirty bool) {
 
 	log.Println("Lookup")
-	vals := make([]string, 0)
 	for i := 0; i < count; i++ {
 		//log.Printf("key:%s\n", keys[i].K)
 		keys[i].Id = 0
-		ch := bt.LookupDirty(keys[i])
+		var ch chan []byte
+		if dirty {
+			ch = bt.LookupDirty(keys[i])
+		} else {
+			ch = bt.Lookup(keys[i])
+		}
+		vals := make([]string, 0)
 		for {
 			x := <-ch
 			log.Printf("key:%s, val:%s\n", keys[i].K, string(x))
@@ -176,8 +184,9 @@ func lookup(bt *btree.BTree, count, factor int, keys []*btree.TestKey,
 			vals = append(vals, string(x))
 		}
 		//sort.Strings(vals)
-		if vals[i] != values[i].V {
-			panic("Lookup value mismatch")
+		if len(vals) == 0 || vals[0] != values[i].V {
+			println("Lookup value mismatch")
+			return
 		}
 
 	}
