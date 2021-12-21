@@ -41,39 +41,26 @@ func (store *Store) appendValueS(val string) int64 {
 }
 
 // Append/Fetch key as either byte-slice or string
-// todo: support fetch from cached keys
+// support fetch from cached keys
 func (store *Store) fetchKey(fpos int64) []byte {
-	x := store.wstore.readKV(store.kvRfd, fpos)
-	return x
-}
-
-func (store *Store) fetchKeyS(fpos int64) string {
-	return string(store.wstore.readKV(store.kvRfd, fpos))
+	return store.wstore.lookupKey(store.kvRfd, fpos)
 }
 
 func (store *Store) appendKey(key []byte) int64 {
-	return store.wstore.appendKV(key)
-}
-
-func (store *Store) appendKeyS(key string) int64 {
-	return store.wstore.appendKV([]byte(key))
+	fpos := store.wstore.appendKV(key)
+	store.wstore.cacheKey(fpos, key)
+	return fpos
 }
 
 // Append/Fetch Docid as either byte-slice or string
 func (store *Store) fetchDocid(fpos int64) []byte {
-	return store.wstore.readKV(store.kvRfd, fpos)
-}
-
-func (store *Store) fetchDocidS(fpos int64) string {
-	return string(store.wstore.readKV(store.kvRfd, fpos))
+	return store.wstore.lookupDocid(store.kvRfd, fpos)
 }
 
 func (store *Store) appendDocid(docid []byte) int64 {
-	return store.wstore.appendKV(docid)
-}
-
-func (store *Store) appendDocidS(docid string) int64 {
-	return store.wstore.appendKV([]byte(docid))
+	fpos := store.wstore.appendKV(docid)
+	store.wstore.cacheDocid(fpos, docid)
+	return fpos
 }
 
 // Read bytes from `kvStore.rfd` at `fpos`.

@@ -62,7 +62,7 @@ type pingPong struct {
 	// ping map for intermediate nodes and leaf nodes
 	ncping unsafe.Pointer
 	lcping unsafe.Pointer
-	// pong map for keys and docids
+	// pong map for key and docId
 	kdping unsafe.Pointer
 	kdpong unsafe.Pointer
 	sync.RWMutex
@@ -144,7 +144,10 @@ func (wstore *WStore) lookupKey(rfd *os.File, fpos int64) []byte {
 	var key []byte
 	kdpong := (*map[int64][]byte)(atomic.LoadPointer(&wstore.kdpong))
 	if key = (*kdpong)[fpos]; key == nil {
-		return wstore.readKV(rfd, fpos)
+		key = wstore.readKV(rfd, fpos)
+		if key != nil {
+			wstore.cacheKey(fpos, key)
+		}
 	} else {
 		wstore.keyHits += 1
 	}
@@ -155,7 +158,10 @@ func (wstore *WStore) lookupDocid(rfd *os.File, fpos int64) []byte {
 	var docid []byte
 	kdpong := (*map[int64][]byte)(atomic.LoadPointer(&wstore.kdpong))
 	if docid = (*kdpong)[fpos]; docid == nil {
-		return wstore.readKV(rfd, fpos)
+		docid = wstore.readKV(rfd, fpos)
+		if docid != nil {
+			wstore.cacheDocid(fpos, docid)
+		}
 	} else {
 		wstore.docidHits += 1
 	}
