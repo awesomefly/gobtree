@@ -80,6 +80,7 @@ type WStoreStats struct {
 	loadCounts       int64
 	MVloadCounts     int64
 	opCounts         int64
+	pingpongChCnt    int64
 }
 
 // Main API to get or instantiate a write-store. If write-store for this index

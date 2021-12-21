@@ -435,6 +435,10 @@ func (bt *BTree) Stats(check bool) {
 		"garbageBlocks:%10v      freelist: %10v    opCount:       %10v\n",
 		wstore.garbageBlocks, len(wstore.freelist.offsets), wstore.opCounts,
 	)
+	fmt.Printf(
+		"pingpongCacheChangeCnt:%10v\n",
+		wstore.pingpongChCnt,
+	)
 	if check {
 		bt.Check()
 	}

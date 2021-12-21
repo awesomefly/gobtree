@@ -202,6 +202,7 @@ func (wstore *WStore) ping2Pong() {
 	atomic.StorePointer(&wstore.kdpong, kdping)
 	atomic.StorePointer(&wstore.kdping, kdpong)
 
+	wstore.pingpongChCnt += 1
 	defer wstore.Unlock()
 
 	// Trim leaf cache

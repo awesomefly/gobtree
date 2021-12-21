@@ -34,8 +34,8 @@ var conf = btree.Config{
 }
 
 func main() {
-	//os.Remove(conf.idxfile)
-	//os.Remove(conf.kvfile)
+	os.Remove(conf.Idxfile)
+	os.Remove(conf.Kvfile)
 	if conf.Debug {
 		fd, _ := os.Create("debug")
 		log.SetOutput(fd)
@@ -45,7 +45,11 @@ func main() {
 
 	seed := time.Now().UnixNano()
 	log.Println("Seed:", seed)
-	doinsert(seed, 2000, 10000, bt, false)
+
+	start := time.Now()
+	doinsert(seed, 2000, 10, bt, false)
+	log.Printf("espl:%f", time.Since(start).Seconds())
+
 	bt.Drain()
 	bt.Stats(true)
 	log.Println()
@@ -64,6 +68,6 @@ func doinsert(seed int64, factor, count int, bt *btree.BTree, check bool) {
 				bt.Check()
 			}
 		}
-		log.Println("Done ", time.Now().UnixNano()/1000000, (i+1)*count)
+		//log.Println("Done ", time.Now().UnixNano()/1000000, (i+1)*count)
 	}
 }
