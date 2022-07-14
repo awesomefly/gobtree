@@ -8,7 +8,7 @@
 //  and limitations under the License.
 
 // translates btree blocks from persistant storage to in-memory data
-// structure, called btree-node. A btree node can be a knode (also called leaf
+// structure, called btree-node. A btree node can be a lnode (also called leaf
 // node) or it can be a inode. `block` structure is fundamental to both type
 // of nodes.
 package btree
@@ -37,7 +37,7 @@ type block struct {
 	vs   []int64 // slice of `size+1`.
 }
 
-// check whether `block` is a leaf block, which means `Node` is a `knode`
+// check whether `block` is a leaf block, which means `Node` is a `lnode`
 // structure.
 func (b *block) isLeaf() bool {
 	return b.leaf == TRUE

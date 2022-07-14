@@ -14,7 +14,7 @@
 //  |   inode    |       ^          |       ^        |   inode    |
 //  | ping-cache |       |          |       |        | pong-cache |
 //  |            |       *<-----*-----------*        |            |
-//  |   knode    |       |      |   |       *------->|   knode    |
+//  |   lnode    |       |      |   |       *------->|   lnode    |
 //  | ping-cache |       |      |   |     ncache()   | pong-cache |
 //  *------------*       |  commitQ |                *------------*
 //        ^              V      ^   |        (Locked access using sync.Mutex)
@@ -89,7 +89,7 @@ func (wstore *WStore) ncache(node Node) {
 	wstore.Lock()
 	defer wstore.Unlock()
 
-	fpos := node.getKnode().fpos
+	fpos := node.getLeafNode().fpos
 	if node.isLeaf() {
 		lc := (*map[int64]Node)(atomic.LoadPointer(&wstore.lcpong))
 		if len(*lc) < wstore.MaxLeafCache {
@@ -247,8 +247,8 @@ func (wstore *WStore) checkPingPong() {
 		}
 	}
 
-	//lcping := (*map[int64]Node)(atomic.LoadPointer(&wstore.lcping))
-	//lcpong := (*map[int64]Node)(atomic.LoadPointer(&wstore.lcpong))
+	//lcping := (*map[int64]Node)(atomic.LoadPointer(&WStore.lcping))
+	//lcpong := (*map[int64]Node)(atomic.LoadPointer(&WStore.lcpong))
 	//if len(*lcping) != len(*lcpong) {
 	//    panic("Mismatch in lc ping-pong lengths")
 	//}

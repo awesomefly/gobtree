@@ -7,6 +7,7 @@
 //  either express or implied. See the License for the specific language governing permissions
 //  and limitations under the License.
 
+// Package btree
 // Data store for btree, organised in two files, index-file and kv-file.
 //
 // index-file,
@@ -40,8 +41,8 @@ const (
 )
 
 type Store struct {
-	Config
-	wstore *WStore  // Reference to write-store.
+	//Config
+	*WStore  // Reference to write-store.
 	kvRfd  *os.File // Random read-only access for kv-file.
 	idxRfd *os.File // Random read-only access for index-file.
 }
@@ -52,8 +53,8 @@ type Store struct {
 func NewStore(conf Config) *Store {
 	wstore := OpenWStore(conf)
 	store := &Store{
-		Config: conf,
-		wstore: wstore,
+		//Config: conf,
+		WStore: wstore,
 		idxRfd: openRfd(conf.Idxfile),
 		kvRfd:  openRfd(conf.Kvfile),
 	}
@@ -68,8 +69,8 @@ func (store *Store) Close() {
 	store.kvRfd = nil
 	store.idxRfd.Close()
 	store.idxRfd = nil
-	store.wstore.CloseWStore()
-	store.wstore = nil
+	store.WStore.CloseWStore()
+	store.WStore = nil
 }
 
 // Destroy is opposite of Create, it cleans up the datafiles. Data files will
@@ -80,10 +81,10 @@ func (store *Store) Destroy() {
 	store.idxRfd.Close()
 	store.idxRfd = nil
 	// Close and destroy
-	if store.wstore.CloseWStore() {
-		store.wstore.DestroyWStore()
+	if store.WStore.CloseWStore() {
+		store.WStore.DestroyWStore()
 	}
-	store.wstore = nil
+	store.WStore = nil
 }
 
 // Fetch the root btree block from index-file. `transaction` must be true for
@@ -95,8 +96,8 @@ func (store *Store) OpStart(transaction bool) (Node, *MV, int64) {
 	var root Node
 	var ts, rootfpos int64
 	if transaction {
-		store.wstore.translock <- true
-		ts, rootfpos = store.wstore.access(transaction)
+		store.WStore.translock <- true
+		ts, rootfpos = store.WStore.access(transaction)
 		mvroot := mvRoot(store)
 		if mvroot == 0 {
 			mvroot = rootfpos
@@ -107,18 +108,18 @@ func (store *Store) OpStart(transaction bool) (Node, *MV, int64) {
 		staleroot := store.FetchMVCache(mvroot)
 		root = staleroot.copyOnWrite(store)
 		mv = &MV{stales: []int64{mvroot}, commits: make(map[int64]Node)}
-		mv.commits[root.getKnode().fpos] = root
+		mv.commits[root.getLeafNode().fpos] = root
 	} else {
-		ts, rootfpos = store.wstore.access(transaction)
+		ts, rootfpos = store.WStore.access(transaction)
 		if store.Debug {
 			log.Println("Root: ", rootfpos)
 		}
 		root = store.FetchNCache(rootfpos)
 		mv = &MV{stales: []int64{}, commits: make(map[int64]Node)}
-		mv.commits[root.getKnode().fpos] = root
+		mv.commits[root.getLeafNode().fpos] = root
 	}
 	mv.timestamp = ts
-	store.wstore.opCounts += 1
+	store.WStore.opCounts += 1
 	return root, mv, ts
 }
 
@@ -128,7 +129,7 @@ func (store *Store) OpStartDirty(transaction bool) (Node, *MV, int64) {
 	var ts, rootfpos int64
 	if transaction {
 	} else {
-		ts, rootfpos = store.wstore.access(transaction)
+		ts, rootfpos = store.WStore.access(transaction)
 		mvroot := mvRoot(store)
 		if mvroot == 0 {
 			mvroot = rootfpos
@@ -139,19 +140,19 @@ func (store *Store) OpStartDirty(transaction bool) (Node, *MV, int64) {
 		staleroot := store.FetchMVCache(mvroot)
 		root = staleroot.copyOnWrite(store)
 		mv = &MV{stales: []int64{}, commits: make(map[int64]Node)}
-		mv.commits[root.getKnode().fpos] = root
+		mv.commits[root.getLeafNode().fpos] = root
 	}
 	mv.timestamp = ts
-	store.wstore.opCounts += 1
+	store.WStore.opCounts += 1
 	return root, mv, ts
 }
 
 // Opposite of OpStart() API.
 func (store *Store) OpEnd(transaction bool, mv *MV, ts int64) {
-	minAccess := store.wstore.release(ts)
+	minAccess := store.WStore.release(ts)
 	if transaction {
-		store.wstore.commit(mv, minAccess, false)
-		<-store.wstore.translock
+		store.WStore.commit(mv, minAccess, false)
+		<-store.WStore.translock
 	}
 }
 
@@ -161,7 +162,7 @@ func (store *Store) OpEnd(transaction bool, mv *MV, ts int64) {
 func (store *Store) FetchNCache(fpos int64) Node {
 	var node Node
 	// Sanity check
-	fpos_firstblock, blocksize := store.wstore.fpos_firstblock, store.Blocksize
+	fpos_firstblock, blocksize := store.WStore.fpos_firstblock, store.Blocksize
 	if fpos < fpos_firstblock || (fpos-fpos_firstblock)%blocksize != 0 {
 		panic("Invalid fpos to fetch")
 	}
@@ -169,13 +170,13 @@ func (store *Store) FetchNCache(fpos int64) Node {
 	if store.Debug {
 		log.Println("fetch", fpos)
 	}
-	if node = store.wstore.ncacheLookup(fpos); node == nil {
-		store.wstore.loadCounts += 1
+	if node = store.WStore.ncacheLookup(fpos); node == nil {
+		store.WStore.loadCounts += 1
 		node = store.FetchNode(fpos)
-		store.wstore.ncache(node)
+		store.WStore.ncache(node)
 	}
 	if store.Debug {
-		store.wstore.freelist.assertNotMember(fpos)
+		store.WStore.freelist.assertNotMember(fpos)
 	}
 	return node
 }
@@ -188,25 +189,25 @@ func (store *Store) FetchNCache(fpos int64) Node {
 func (store *Store) FetchMVCache(fpos int64) Node {
 	var node Node
 	// Sanity check
-	fpos_firstblock, blocksize := store.wstore.fpos_firstblock, store.Blocksize
+	fpos_firstblock, blocksize := store.WStore.fpos_firstblock, store.Blocksize
 	if fpos < fpos_firstblock || (fpos-fpos_firstblock)%blocksize != 0 {
 		log.Panicln("Invalid fpos to fetch", fpos)
 	}
 	// Try to fetch from commitQ
-	if node = store.wstore.ccacheLookup(fpos); node == nil {
+	if node = store.WStore.ccacheLookup(fpos); node == nil {
 		// Try to fetch from cache
-		if node = store.wstore.ncacheLookup(fpos); node == nil {
-			store.wstore.MVloadCounts += 1
+		if node = store.WStore.ncacheLookup(fpos); node == nil {
+			store.WStore.MVloadCounts += 1
 			node = store.FetchNode(fpos)
 		}
 	}
 	if store.Debug {
-		store.wstore.freelist.assertNotMember(fpos)
+		store.WStore.freelist.assertNotMember(fpos)
 	}
 	return node
 }
 
-// Fetch the prestine block from disk and make a knode or inode out of it.
+// FetchNode Fetch the prestine block from disk and make a lnode or inode out of it.
 func (store *Store) FetchNode(fpos int64) Node {
 	var node Node
 	data := make([]byte, store.Blocksize)
@@ -215,11 +216,11 @@ func (store *Store) FetchNode(fpos int64) Node {
 	}
 	b := (&block{}).newBlock(0, store.maxKeys())
 	b.gobDecode(data)
-	kn := knode{block: *b, fpos: fpos}
+	kn := lnode{block: *b, fpos: fpos}
 	if b.isLeaf() {
 		node = &kn
 	} else {
-		node = &inode{knode: kn}
+		node = &inode{lnode: kn}
 	}
 	return node
 }
@@ -227,7 +228,7 @@ func (store *Store) FetchNode(fpos int64) Node {
 // Maximum number of keys that are stored in a btree block, it is always an
 // even number and adjusted for the additional value entry.
 func (store *Store) maxKeys() int {
-	return int(store.wstore.head.maxkeys)
+	return int(store.WStore.head.maxkeys)
 }
 
 func calculateMaxKeys(blocksize int64) int64 {
@@ -280,7 +281,7 @@ func openRfd(file string) *os.File {
 }
 
 func is_configSane(store *Store) bool {
-	wstore := store.wstore
+	wstore := store.WStore
 	if store.Sectorsize != wstore.Sectorsize {
 		return false
 	}

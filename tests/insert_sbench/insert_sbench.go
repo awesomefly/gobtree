@@ -45,7 +45,7 @@ func main() {
 	store := btree.NewStore(conf)
 	bt := btree.NewBTree(store)
 	factor := 1
-	count := 10000
+	count := 10
 	seed := time.Now().UnixNano()
 	fmt.Println("Seed:", seed)
 	keys, values := btree.TestData(count, seed)

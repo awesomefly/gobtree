@@ -10,30 +10,30 @@
 // Index mutation due to {key,docid,value} insert.
 package btree
 
-func (kn *knode) insert(store *Store, key Key, v Value, mv *MV) (
+func (ln *lnode) insert(store *Store, key Key, v Value, mv *MV) (
 	Node, int64, int64) {
 
-	index, kfpos, dfpos := kn.searchGE(store, key, true)
+	index, kfpos, dfpos := ln.searchGE(store, key, true)
 	if kfpos >= 0 && dfpos >= 0 {
-		kn.ks[index], kn.ds[index] = kfpos, dfpos
-		kn.vs[index] = store.valueOf(v)
+		ln.ks[index], ln.ds[index] = kfpos, dfpos
+		ln.vs[index] = store.valueOf(v)
 	} else {
-		kn.ks = kn.ks[:len(kn.ks)+1]         // Make space in the key array
-		kn.ds = kn.ds[:len(kn.ds)+1]         // Make space in the key array
-		copy(kn.ks[index+1:], kn.ks[index:]) // Shift existing data out of the way
-		copy(kn.ds[index+1:], kn.ds[index:]) // Shift existing data out of the way
-		kn.ks[index], kn.ds[index] = store.keyOf(key, kfpos, dfpos)
+		ln.ks = ln.ks[:len(ln.ks)+1]         // Make space in the key array
+		ln.ds = ln.ds[:len(ln.ds)+1]         // Make space in the key array
+		copy(ln.ks[index+1:], ln.ks[index:]) // Shift existing data out of the way
+		copy(ln.ds[index+1:], ln.ds[index:]) // Shift existing data out of the way
+		ln.ks[index], ln.ds[index] = store.keyOf(key, kfpos, dfpos)
 
-		kn.vs = kn.vs[:len(kn.vs)+1]         // Make space in the value array
-		copy(kn.vs[index+1:], kn.vs[index:]) // Shift existing data out of the way
-		kn.vs[index] = store.valueOf(v)
+		ln.vs = ln.vs[:len(ln.vs)+1]         // Make space in the value array
+		copy(ln.vs[index+1:], ln.vs[index:]) // Shift existing data out of the way
+		ln.vs[index] = store.valueOf(v)
 	}
 
-	kn.size = len(kn.ks)
-	if kn.size <= store.maxKeys() {
+	ln.size = len(ln.ks)
+	if ln.size <= store.maxKeys() {
 		return nil, -1, -1
 	}
-	spawnKn, mkfpos, mdfpos := kn.split(store)
+	spawnKn, mkfpos, mdfpos := ln.split(store)
 	mv.commits[spawnKn.fpos] = spawnKn
 	return spawnKn, mkfpos, mdfpos
 }
@@ -45,12 +45,12 @@ func (in *inode) insert(store *Store, key Key, v Value, mv *MV) (
 	// Copy on write
 	stalechild := store.FetchMVCache(in.vs[index])
 	child := stalechild.copyOnWrite(store)
-	mv.stales = append(mv.stales, stalechild.getKnode().fpos)
-	mv.commits[child.getKnode().fpos] = child
+	mv.stales = append(mv.stales, stalechild.getLeafNode().fpos)
+	mv.commits[child.getLeafNode().fpos] = child
 
 	// Recursive insert
 	spawn, mkfpos, mdfpos := child.insert(store, key, v, mv)
-	in.vs[index] = child.getKnode().fpos
+	in.vs[index] = child.getLeafNode().fpos
 	if spawn == nil {
 		return nil, -1, -1
 	}
@@ -63,7 +63,7 @@ func (in *inode) insert(store *Store, key Key, v Value, mv *MV) (
 
 	in.vs = in.vs[:len(in.vs)+1]           // Make space in the value array
 	copy(in.vs[index+2:], in.vs[index+1:]) // Shift existing data out of the way
-	in.vs[index+1] = spawn.getKnode().fpos
+	in.vs[index+1] = spawn.getLeafNode().fpos
 
 	in.size = len(in.ks)
 	max := store.maxKeys()
@@ -88,21 +88,21 @@ func (in *inode) insert(store *Store, key Key, v Value, mv *MV) (
 // half. Returns,
 //  - new leaf node,
 //  - key, that splits the two nodes with CompareLess() method.
-func (kn *knode) split(store *Store) (*knode, int64, int64) {
+func (ln *lnode) split(store *Store) (*lnode, int64, int64) {
 	// Get a free block
 	max := store.maxKeys() // always even
 
-	newkn := (&knode{}).newNode(store) // Fetch a newnode from freelist
+	newkn := (&lnode{}).newNode(store) // Fetch a newnode from freelist
 
-	copy(newkn.ks, kn.ks[max/2+1:])
-	copy(newkn.ds, kn.ds[max/2+1:])
-	kn.ks = kn.ks[:max/2+1]
-	kn.ds = kn.ds[:max/2+1]
-	kn.size = len(kn.ks)
+	copy(newkn.ks, ln.ks[max/2+1:])
+	copy(newkn.ds, ln.ds[max/2+1:])
+	ln.ks = ln.ks[:max/2+1]
+	ln.ds = ln.ds[:max/2+1]
+	ln.size = len(ln.ks)
 	newkn.size = len(newkn.ks)
 
-	copy(newkn.vs, kn.vs[max/2+1:])
-	kn.vs = append(kn.vs[:max/2+1], 0)
+	copy(newkn.vs, ln.vs[max/2+1:])
+	ln.vs = append(ln.vs[:max/2+1], 0)
 	return newkn, newkn.ks[0], newkn.ds[0]
 }
 

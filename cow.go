@@ -10,15 +10,15 @@
 package btree
 
 // Create a new copy of node by assigning a free file-position to it.
-func (kn *knode) copyOnWrite(store *Store) Node {
-	newkn := (&knode{}).newNode(store)
-	newkn.ks = newkn.ks[:len(kn.ks)]
-	copy(newkn.ks, kn.ks)
-	newkn.ds = newkn.ds[:len(kn.ds)]
-	copy(newkn.ds, kn.ds)
-	newkn.vs = newkn.vs[:len(kn.vs)]
-	copy(newkn.vs, kn.vs)
-	newkn.size = len(kn.ks)
+func (ln *lnode) copyOnWrite(store *Store) Node {
+	newkn := (&lnode{}).newNode(store)
+	newkn.ks = newkn.ks[:len(ln.ks)]
+	copy(newkn.ks, ln.ks)
+	newkn.ds = newkn.ds[:len(ln.ds)]
+	copy(newkn.ds, ln.ds)
+	newkn.vs = newkn.vs[:len(ln.vs)]
+	copy(newkn.vs, ln.vs)
+	newkn.size = len(ln.ks)
 	return newkn
 }
 
@@ -35,28 +35,28 @@ func (in *inode) copyOnWrite(store *Store) Node {
 	return newin
 }
 
-// Create a new instance of `knode`, an in-memory representation of btree leaf
+// Create a new instance of `lnode`, an in-memory representation of btree leaf
 // block.
 //   * `keys` slice must be half sized and zero valued, capacity of keys slice
 //     must be 1 larger to accomodate overflow-detection.
 //   * `values` slice must be half+1 sized and zero valued, capacity of value
 //     slice must be 1 larger to accomodate overflow-detection.
-func (kn *knode) newNode(store *Store) *knode {
-	fpos := store.wstore.freelist.pop()
+func (ln *lnode) newNode(store *Store) *lnode {
+	fpos := store.WStore.freelist.pop()
 
 	max := store.maxKeys() // always even
 	b := (&block{leaf: TRUE}).newBlock(max/2, max)
-	newkn := &knode{block: *b, fpos: fpos, dirty: true}
+	newkn := &lnode{block: *b, fpos: fpos, dirty: true}
 	return newkn
 }
 
 // Refer to the notes above.
 func (in *inode) newNode(store *Store) *inode {
-	fpos := store.wstore.freelist.pop()
+	fpos := store.WStore.freelist.pop()
 
 	max := store.maxKeys() // always even
 	b := (&block{leaf: FALSE}).newBlock(max/2, max)
-	kn := knode{block: *b, fpos: fpos, dirty: true}
-	newin := &inode{knode: kn}
+	kn := lnode{block: *b, fpos: fpos, dirty: true}
+	newin := &inode{lnode: kn}
 	return newin
 }

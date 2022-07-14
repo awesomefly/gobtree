@@ -19,11 +19,11 @@ func Test_Head(t *testing.T) {
 		store.Destroy()
 	}()
 
-	head := store.wstore.head
-	if head.wstore != store.wstore {
+	head := store.WStore.head
+	if head.wstore != store.WStore {
 		t.Fail()
 	}
-	if head.root != store.wstore.fpos_firstblock {
+	if head.root != store.WStore.fpos_firstblock {
 		t.Fail()
 	}
 }

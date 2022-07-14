@@ -140,7 +140,7 @@ func doDefer(wstore *WStore) {
 
 				// Update btree's ping cache
 				for _, node := range commitQ {
-					wstore._pingCache(node.getKnode().fpos, node)
+					wstore._pingCache(node.getLeafNode().fpos, node)
 				}
 				for _, fpos := range recycleQ {
 					wstore._pingCacheEvict(fpos)
@@ -228,7 +228,7 @@ func recycleSnapshot(wstore *WStore, minAccess, hdts int64, force bool) []int64 
 func commitkeys(commits map[int64]Node) []int64 {
 	ks := make([]int64, 0)
 	for _, node := range commits {
-		ks = append(ks, node.getKnode().fpos)
+		ks = append(ks, node.getLeafNode().fpos)
 	}
 	return ks
 }

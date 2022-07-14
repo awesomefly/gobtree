@@ -21,13 +21,13 @@ func Test_Cache(t *testing.T) {
 
 	cache := NewDCache(store.Blocksize, 1024*1024, 0xFFFFF)
 	for i := 0; i < (int(store.Flistsize/8) / 2); i++ {
-		node := (&knode{}).newNode(store)
-		nfpos := node.getKnode().fpos
+		node := (&lnode{}).newNode(store)
+		nfpos := node.getLeafNode().fpos
 		cache.cache(nfpos, node)
 		if cache.cacheLookup(nfpos) == nil {
 			t.Error("cacheLookup failed")
 		}
-		if cache.cacheEvict(nfpos).getKnode().fpos != nfpos {
+		if cache.cacheEvict(nfpos).getLeafNode().fpos != nfpos {
 			t.Error("cacheEvict failed")
 		}
 		if cache.cacheLookup(nfpos) != nil {
@@ -43,7 +43,7 @@ func Benchmark_Cache(b *testing.B) {
 	}()
 
 	cache := NewDCache(store.Blocksize, 1024*64, 0xFFFF)
-	node := (&knode{}).newNode(store)
+	node := (&lnode{}).newNode(store)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cache.cache(int64(i)<<cache.rshift, node)
@@ -58,7 +58,7 @@ func Benchmark_CacheEvict(b *testing.B) {
 
 	count := 1000000
 	cache := NewDCache(store.Blocksize, 1024*4, 0xFFF)
-	node := (&knode{}).newNode(store)
+	node := (&lnode{}).newNode(store)
 	for i := 0; i < count; i++ {
 		cache.cache(int64(i)<<cache.rshift, node)
 	}
@@ -76,7 +76,7 @@ func Benchmark_CacheLookup(b *testing.B) {
 
 	count := 10000000
 	cache := NewDCache(store.Blocksize, 1024*64, 0xFFFF)
-	node := (&knode{}).newNode(store)
+	node := (&lnode{}).newNode(store)
 	for i := 0; i < count; i++ {
 		cache.cache(int64(i)<<cache.rshift, node)
 	}

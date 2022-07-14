@@ -14,7 +14,7 @@ import (
 )
 
 func (store *Store) check() bool {
-	wstore := store.wstore
+	wstore := store.WStore
 	freelist := wstore.freelist
 	rfd, _ := os.Open(wstore.Idxfile)
 

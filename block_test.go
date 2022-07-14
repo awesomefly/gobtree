@@ -20,7 +20,7 @@ func Benchmark_gobenc(b *testing.B) {
 	}()
 
 	max := store.maxKeys()
-	kn := (&knode{}).newNode(store)
+	kn := (&lnode{}).newNode(store)
 	kn.ks = kn.ks[:0]
 	kn.vs = kn.vs[:0]
 	for i := 0; i < max; i++ {
@@ -43,7 +43,7 @@ func Benchmark_gobdec(b *testing.B) {
 	}()
 
 	max := store.maxKeys()
-	kn := (&knode{}).newNode(store)
+	kn := (&lnode{}).newNode(store)
 	kn.ks = kn.ks[:0]
 	kn.vs = kn.vs[:0]
 	for i := 0; i < max; i++ {

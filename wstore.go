@@ -21,7 +21,7 @@ import (
 
 // WStore instances are created for each index. If applications tend to create
 // multiple stores for the same index file, they will refer to the same
-// wstore.
+// WStore.
 var writeStores = make(map[string]*WStore)
 var wmu sync.Mutex // Protected access to `writeStores`
 
@@ -174,7 +174,7 @@ func getWStore(conf Config) *WStore {
 	return wstore
 }
 
-// New instance of wstore.
+// New instance of WStore.
 func newWStore(conf Config) *WStore {
 	idxmode, kvmode := os.O_WRONLY, os.O_WRONLY
 	// open in durability mode.
@@ -220,7 +220,7 @@ func newWStore(conf Config) *WStore {
 	return wstore
 }
 
-// Lock and dereference the wstore before closing it.
+// Lock and dereference the WStore before closing it.
 func derefWSTore(wstore *WStore) bool {
 	wmu.Lock()
 	defer wmu.Unlock()
@@ -265,12 +265,12 @@ func createWStore(conf Config) {
 	// Root : Fetch a new node from freelist for root and setup.
 	fpos := wstore.freelist.pop()
 	b := (&block{leaf: TRUE}).newBlock(0, 0)
-	root := &knode{block: *b, fpos: fpos, dirty: true}
+	root := &lnode{block: *b, fpos: fpos, dirty: true}
 	wstore.flushNode(root)
 	wstore.head.setRoot(root.fpos, 0)
 	crc := wstore.freelist.flush()
 	wstore.head.flush(crc)
-	// Close wstore
+	// Close WStore
 	wstore.kvWfd.Close()
 	wstore.kvWfd = nil
 	wstore.idxWfd.Close()
@@ -321,7 +321,7 @@ func (wstore *WStore) appendBlocks(fpos int64, count int) []int64 {
 
 func (wstore *WStore) flushNode(node Node) {
 	var data []byte
-	kn := node.getKnode()
+	kn := node.getLeafNode()
 	data = kn.gobEncode()
 	if len(data) <= int(wstore.Blocksize) {
 		wstore.idxWfd.WriteAt(data, kn.fpos)

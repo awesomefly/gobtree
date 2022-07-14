@@ -21,7 +21,7 @@ func Benchmark_access(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ts, _ := store.wstore.access(false)
-		store.wstore.release(ts)
+		ts, _ := store.WStore.access(false)
+		store.WStore.release(ts)
 	}
 }

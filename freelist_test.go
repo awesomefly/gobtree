@@ -19,7 +19,7 @@ func Test_maxFreeBlock(t *testing.T) {
 		store.Destroy()
 	}()
 
-	wstore := store.wstore
+	wstore := store.WStore
 	if (wstore.maxFreeBlocks() * 8) != int(store.Flistsize) {
 		t.Fail()
 	}
@@ -31,7 +31,7 @@ func Test_fetchFreelist(t *testing.T) {
 		store.Destroy()
 	}()
 
-	wstore := store.wstore
+	wstore := store.WStore
 	freelist := wstore.freelist
 	firstfpos := wstore.fpos_firstblock
 	if (freelist.offsets[0] != firstfpos+int64(wstore.Blocksize)) ||

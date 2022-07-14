@@ -20,7 +20,7 @@ type IO struct {
 }
 
 func mvRoot(store *Store) int64 {
-	wstore := store.wstore
+	wstore := store.WStore
 	if len(wstore.mvQ) > 0 {
 		return wstore.mvQ[len(wstore.mvQ)-1].root
 	}
@@ -78,13 +78,13 @@ func (wstore *WStore) flushSnapshot(
 		//}
 	}
 	// if force also flush the intermediate ping cache and pong cache
-	//nc := (*map[int64]Node)(atomic.LoadPointer(&wstore.ncping))
+	//nc := (*map[int64]Node)(atomic.LoadPointer(&WStore.ncping))
 	//for _, node := range *nc { // flush nodes first
-	//    wstore.flushNode(node)
+	//    WStore.flushNode(node)
 	//}
-	//nc = (*map[int64]Node)(atomic.LoadPointer(&wstore.ncpong))
+	//nc = (*map[int64]Node)(atomic.LoadPointer(&WStore.ncpong))
 	//for _, node := range *nc { // flush nodes first
-	//    wstore.flushNode(node)
+	//    WStore.flushNode(node)
 	//}
 
 	// Cloned freelist

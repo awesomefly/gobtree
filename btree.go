@@ -212,14 +212,14 @@ func (bt *BTree) Insert(key Key, v Value) bool {
 		in.ks, in.ds = in.ks[:1], in.ds[:1]
 		in.size = len(in.ks)
 
-		in.vs[0] = root.getKnode().fpos
-		in.vs[1] = spawn.getKnode().fpos
+		in.vs[0] = root.getLeafNode().fpos
+		in.vs[1] = spawn.getLeafNode().fpos
 		in.vs = in.vs[:2]
 
 		mv.commits[in.fpos] = in
 		root = in
 	}
-	mv.root = root.getKnode().fpos
+	mv.root = root.getLeafNode().fpos
 	bt.store.OpEnd(true, mv, timestamp) // Then this
 	return true
 }
@@ -309,11 +309,11 @@ func (bt *BTree) ValueSet() <-chan []byte {
 func (bt *BTree) LookupDirty(key Key) chan []byte {
 	c := make(chan []byte)
 	go func() {
-		root, _, timestamp := bt.store.OpStartDirty(false) // read from mv root node
-		root.lookupDirty(bt.store, key, func(val []byte) {
+		root, _, timestamp := bt.store.OpStartDirty(false) // read from MVCC root node
+		root.lookup(bt.store, key, func(val []byte) {
 			c <- val
 		})
-		bt.store.OpEnd(false, nil, timestamp) //do not commit mv
+		bt.store.OpEnd(false, nil, timestamp)
 		close(c)
 	}()
 	return c
@@ -334,29 +334,29 @@ func (bt *BTree) Lookup(key Key) chan []byte {
 
 func (bt *BTree) Remove(key Key) bool {
 	root, mv, timestamp := bt.store.OpStart(true) // root with transaction
-	if root.getKnode().size > 0 {
+	if root.getLeafNode().size > 0 {
 		root, _, _, _ = root.remove(bt.store, key, mv)
 	} else {
 		panic("Empty index")
 	}
-	mv.root = root.getKnode().fpos
+	mv.root = root.getLeafNode().fpos
 	bt.store.OpEnd(true, mv, timestamp) // Then this
 	return true                         // FIXME: What is this ??
 }
 
 func (bt *BTree) Drain() {
-	bt.store.wstore.translock <- true
-	bt.store.wstore.commit(nil, 0, true)
-	<-bt.store.wstore.translock
+	bt.store.WStore.translock <- true
+	bt.store.WStore.commit(nil, 0, true)
+	<-bt.store.WStore.translock
 }
 
 func (bt *BTree) Check() {
 	root, _, timestamp := bt.store.OpStart(false)
 	if bt.store.Debug {
-		log.Println("Check access", root.getKnode().fpos, timestamp)
+		log.Println("Check access", root.getLeafNode().fpos, timestamp)
 	}
-	log.Println("Checking btree ... root:", root.getKnode().fpos)
-	wstore := bt.store.wstore
+	log.Println("Checking btree ... root:", root.getLeafNode().fpos)
+	wstore := bt.store.WStore
 	if bt.store.Debug {
 		log.Printf(
 			"mvQ:   %10v     commitQ:      %10v\n",
@@ -394,9 +394,9 @@ func (bt *BTree) ShowKeys() {
 
 func (bt *BTree) Stats(check bool) {
 	store := bt.store
-	wstore := store.wstore
+	wstore := store.WStore
 	currentStales := make([]int64, 0, 100)
-	for _, mv := range bt.store.wstore.mvQ {
+	for _, mv := range bt.store.WStore.mvQ {
 		currentStales = append(currentStales, mv.stales...)
 	}
 	fmt.Printf(
@@ -451,7 +451,7 @@ func (bt *BTree) LevelCount() ([]int64, int64, int64) {
 	root, mv, timestamp := bt.store.OpStart(false)
 	acc := make([]int64, 0, 16)
 	acc, icount, kcount := root.levelCount(bt.store, 0, acc, 0, 0)
-	ln := int64(len(bt.store.wstore.freelist.offsets) - 1)
+	ln := int64(len(bt.store.WStore.freelist.offsets) - 1)
 	fmt.Println("Blocks: ", icount+kcount+ln)
 	bt.store.OpEnd(false, mv, timestamp)
 	return acc, icount, kcount
